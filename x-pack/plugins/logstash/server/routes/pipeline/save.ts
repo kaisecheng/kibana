@@ -8,7 +8,7 @@ import { i18n } from '@kbn/i18n';
 import { IRouter } from 'src/core/server';
 
 import { INDEX_NAMES } from '../../../common/constants';
-import { Pipeline } from '../../models/pipeline';
+import { OldPipeline } from '../../models/pipeline';
 import { wrapRouteWithLicenseCheck } from '../../../../licensing/server';
 import { SecurityPluginSetup } from '../../../../security/server';
 import { checkLicense } from '../../lib/check_license';
@@ -38,15 +38,19 @@ export function registerPipelineSaveRoute(router: IRouter, security?: SecurityPl
             username = user?.username;
           }
 
-          const client = context.logstash!.esClient;
-          const pipeline = Pipeline.fromDownstreamJSON(request.body, request.params.id, username);
+          //todo remove
+          // const client = context.logstash!.esClient;
+          // const upstreamJSON = OldPipeline.fromDownstreamJSON(request.body, request.params.id, username);
+          // await client.callAsCurrentUser('index', {
+          //   index: INDEX_NAMES.PIPELINES,
+          //   id: request.params.id,
+          //   body: upstreamJSON,
+          //   refresh: 'wait_for',
+          // });
 
-          await client.callAsCurrentUser('index', {
-            index: INDEX_NAMES.PIPELINES,
-            id: pipeline.id,
-            body: pipeline.upstreamJSON,
-            refresh: 'wait_for',
-          });
+          const pipelineJson = context.logstash!.modelClassRef.fromDownstreamJSON(request.body, request.params.id, username);
+          const pipelineFetcher = context.logstash!.pipelineFetcher;
+          await pipelineFetcher.save(request.params.id, pipelineJson);
 
           return response.noContent();
         } catch (err) {

@@ -4,7 +4,7 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-import { Pipeline } from './pipeline';
+import { LegacyPipeline } from './pipeline';
 
 describe('pipeline', () => {
   describe('Pipeline', () => {
@@ -23,7 +23,7 @@ describe('pipeline', () => {
       };
 
       it('returns correct Pipeline instance', () => {
-        const pipeline = Pipeline.fromUpstreamJSON(upstreamJSON);
+        const pipeline = LegacyPipeline.fromUpstreamJSON(upstreamJSON);
         expect(pipeline.id).toBe(upstreamJSON._id);
         expect(pipeline.description).toBe(upstreamJSON._source.description);
         expect(pipeline.username).toBe(upstreamJSON._source.username);
@@ -36,7 +36,7 @@ describe('pipeline', () => {
           _source: upstreamJSON._source,
         };
         const testFromUpstreamJsonError = () => {
-          return Pipeline.fromUpstreamJSON(badJSON);
+          return LegacyPipeline.fromUpstreamJSON(badJSON);
         };
         expect(testFromUpstreamJsonError).toThrowError(
           /upstreamPipeline argument must contain an id property/i
@@ -52,7 +52,7 @@ describe('pipeline', () => {
           username: 'elastic',
           pipeline: 'input {} filter { grok {} }\n output {}',
         };
-        const pipeline = new Pipeline(downstreamJSON);
+        const pipeline = LegacyPipeline.fromDownstreamJSON(downstreamJSON, downstreamJSON.id, downstreamJSON.username);
         const expectedUpstreamJSON = {
           description: 'this is an apache pipeline',
           pipeline_metadata: {
@@ -63,12 +63,12 @@ describe('pipeline', () => {
           pipeline: 'input {} filter { grok {} }\n output {}',
         };
         // can't do an object level comparison because modified field is always `now`
-        expect(pipeline.upstreamJSON.last_modified).toStrictEqual(expect.any(String));
-        expect(pipeline.upstreamJSON.description).toBe(expectedUpstreamJSON.description);
-        expect(pipeline.upstreamJSON.pipeline_metadata).toEqual(
+        expect(pipeline.last_modified).toStrictEqual(expect.any(String));
+        expect(pipeline.description).toBe(expectedUpstreamJSON.description);
+        expect(pipeline.pipeline_metadata).toEqual(
           expectedUpstreamJSON.pipeline_metadata
         );
-        expect(pipeline.upstreamJSON.pipeline).toBe(expectedUpstreamJSON.pipeline);
+        expect(pipeline.pipeline).toBe(expectedUpstreamJSON.pipeline);
       });
     });
   });

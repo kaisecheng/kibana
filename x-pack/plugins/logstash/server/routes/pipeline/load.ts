@@ -4,14 +4,14 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 import { schema } from '@kbn/config-schema';
-import { IRouter } from 'src/core/server';
+import { IRouter, Logger } from 'src/core/server';
 
 import { INDEX_NAMES } from '../../../common/constants';
-import { Pipeline } from '../../models/pipeline';
+import { LegacyPipeline, OldPipeline } from '../../models/pipeline';
 import { wrapRouteWithLicenseCheck } from '../../../../licensing/server';
 import { checkLicense } from '../../lib/check_license';
 
-export function registerPipelineLoadRoute(router: IRouter) {
+export function registerPipelineLoadRoute(router: IRouter, logger: Logger) {
   router.get(
     {
       path: '/api/logstash/pipeline/{id}',
@@ -24,21 +24,29 @@ export function registerPipelineLoadRoute(router: IRouter) {
     wrapRouteWithLicenseCheck(
       checkLicense,
       router.handleLegacyErrors(async (context, request, response) => {
-        const client = context.logstash!.esClient;
+        const pipelineFetcher = context.logstash!.pipelineFetcher;
+        const result = await pipelineFetcher.get(request.params.id);
+        // todo remove
+        // const client = context.logstash!.esClient;
+        // const result = await client.callAsCurrentUser('get', {
+        //   index: INDEX_NAMES.PIPELINES,
+        //   id: request.params.id,
+        //   _source: ['description', 'username', 'pipeline', 'pipeline_settings'],
+        //   ignore: [404],after
+        // });
 
-        const result = await client.callAsCurrentUser('get', {
-          index: INDEX_NAMES.PIPELINES,
-          id: request.params.id,
-          _source: ['description', 'username', 'pipeline', 'pipeline_settings'],
-          ignore: [404],
-        });
-
-        if (!result.found) {
+        if (
+          (result._id && !result.found) ||
+          (result._id === undefined && result[request.params.id] === undefined)
+        ) {
+          logger.debug(`pipeline ${request.params.id} not found`);
           return response.notFound();
         }
 
         return response.ok({
-          body: Pipeline.fromUpstreamJSON(result).downstreamJSON,
+          body: context.logstash!.modelClassRef.fromUpstreamJSON(result, request.params.id),
+          // todo remove
+          // body: new OldPipeline().fromUpstreamJSON(result).downstreamJSON,
         });
       })
     )

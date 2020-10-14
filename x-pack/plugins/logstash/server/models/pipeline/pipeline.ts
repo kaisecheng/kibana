@@ -8,6 +8,7 @@ import moment from 'moment';
 import { badRequest } from 'boom';
 import { get } from 'lodash';
 import { i18n } from '@kbn/i18n';
+import { Pipe } from 'jsondiffpatch';
 
 interface PipelineOptions {
   id: string;
@@ -25,7 +26,7 @@ interface DownstreamPipeline {
 /**
  * This model deals with a pipeline object from ES and converts it to Kibana downstream
  */
-export class Pipeline {
+export class OldPipeline {
   public readonly id: string;
   public readonly description?: string;
   public readonly username?: string;
@@ -88,7 +89,7 @@ export class Pipeline {
       settings: downstreamPipeline.settings,
     };
 
-    return new Pipeline(opts);
+    return new OldPipeline(opts);
   }
 
   // generate Pipeline object from elasticsearch response
@@ -111,6 +112,88 @@ export class Pipeline {
 
     const opts: PipelineOptions = { id, description, username, pipeline, settings };
 
-    return new Pipeline(opts);
+    return new OldPipeline(opts);
+  }
+}
+
+export class LegacyPipeline {
+  public static fromDownstreamJSON(
+    downstreamPipeline: DownstreamPipeline,
+    pipelineId: string,
+    username?: string
+  ) {
+    return {
+      description: downstreamPipeline.description,
+      last_modified: moment().toISOString(),
+      pipeline_metadata: {
+        version: 1,
+        type: 'logstash_pipeline',
+      },
+      username,
+      pipeline: downstreamPipeline.pipeline,
+      pipeline_settings: downstreamPipeline.settings || {},
+    };
+  }
+
+  public static fromUpstreamJSON(upstreamPipeline: Record<string, any>, pipelineId: string) {
+    if (!upstreamPipeline._id) {
+      throw badRequest(
+        i18n.translate(
+          'xpack.logstash.upstreamPipelineArgumentMustContainAnIdPropertyErrorMessage',
+          {
+            defaultMessage: 'upstreamPipeline argument must contain an id property',
+          }
+        )
+      );
+    }
+    return {
+      id: get(upstreamPipeline, '_id') as string,
+      description: get(upstreamPipeline, '_source.description') as string,
+      last_modified: get(upstreamPipeline, '_source.last_modified') as string,
+      username: get(upstreamPipeline, '_source.username') as string,
+      pipeline: get(upstreamPipeline, '_source.pipeline') as string,
+      settings: (get(upstreamPipeline, '_source.pipeline_settings') as Record<string, any>) || {},
+    };
+  }
+}
+
+export class SystemIndicesPipeline {
+  public static fromDownstreamJSON(
+    downstreamPipeline: DownstreamPipeline,
+    pipelineId: string,
+    username?: string
+  ) {
+    return {
+      description: downstreamPipeline.description,
+      last_modified: moment().toISOString(),
+      pipeline_metadata: {
+        version: 1,
+        type: 'logstash_pipeline',
+      },
+      username,
+      pipeline: downstreamPipeline.pipeline,
+      pipeline_settings: downstreamPipeline.settings || {},
+    };
+  }
+
+  public static fromUpstreamJSON(upstreamPipeline: Record<string, any>, pipelineId: string) {
+    if (!upstreamPipeline[pipelineId]) {
+      throw badRequest(
+        i18n.translate(
+          'xpack.logstash.upstreamPipelineArgumentMustContainAnIdPropertyErrorMessage',
+          {
+            defaultMessage: 'upstreamPipeline argument must contain an id property',
+          }
+        )
+      );
+    }
+    const p = upstreamPipeline[pipelineId];
+    return {
+      id: pipelineId,
+      description: get(p, 'description') as string,
+      username: get(p, 'username') as string,
+      pipeline: get(p, 'pipeline') as string,
+      settings: (get(p, 'pipeline_settings') as Record<string, any>) || {},
+    };
   }
 }

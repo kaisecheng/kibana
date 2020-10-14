@@ -4,4 +4,4 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-export { OldPipeline, LegacyPipeline, SystemIndicesPipeline } from './pipeline';
+export { LegacyApiPipelineFetcher, SystemIndicesApiPipelineFetcher } from './pipeline_fetcher';

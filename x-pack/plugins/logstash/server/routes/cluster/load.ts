@@ -16,8 +16,10 @@ export function registerClusterLoadRoute(router: IRouter) {
     },
     wrapRouteWithLicenseCheck(checkLicense, async (context, request, response) => {
       try {
-        const client = context.logstash!.esClient;
-        const info = await client.callAsCurrentUser('info');
+        const pipelineFetcher = context.logstash!.pipelineFetcher;
+        //todo remove
+        // const info = await client.callAsCurrentUser('info');
+        const info = await pipelineFetcher.info();
         return response.ok({
           body: {
             cluster: Cluster.fromUpstreamJSON(info).downstreamJSON,

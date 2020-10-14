@@ -10,13 +10,10 @@ import { wrapRouteWithLicenseCheck } from '../../../../licensing/server';
 import { INDEX_NAMES } from '../../../common/constants';
 import { checkLicense } from '../../lib/check_license';
 
-async function deletePipelines(callWithRequest: LegacyAPICaller, pipelineIds: string[]) {
+async function deletePipelines(fetcher: PipelineFetcher, pipelineIds: string[]) {
   const deletePromises = pipelineIds.map((pipelineId) => {
-    return callWithRequest('delete', {
-      index: INDEX_NAMES.PIPELINES,
-      id: pipelineId,
-      refresh: 'wait_for',
-    })
+    return fetcher
+      .delete(pipelineId)
       .then((success) => ({ success }))
       .catch((error) => ({ error }));
   });
@@ -44,8 +41,11 @@ export function registerPipelinesDeleteRoute(router: IRouter) {
     wrapRouteWithLicenseCheck(
       checkLicense,
       router.handleLegacyErrors(async (context, request, response) => {
-        const client = context.logstash!.esClient;
-        const results = await deletePipelines(client.callAsCurrentUser, request.body.pipelineIds);
+        const pipelineFetcher = context.logstash!.pipelineFetcher;
+        const results = await deletePipelines(pipelineFetcher, request.body.pipelineIds);
+        //todo remove
+        // const client = context.logstash!.esClient;
+        // const results = await deletePipelines(client.callAsCurrentUser, request.body.pipelineIds);
 
         return response.ok({ body: { results } });
       })

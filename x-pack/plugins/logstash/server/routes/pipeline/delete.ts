@@ -23,13 +23,15 @@ export function registerPipelineDeleteRoute(router: IRouter) {
     wrapRouteWithLicenseCheck(
       checkLicense,
       router.handleLegacyErrors(async (context, request, response) => {
-        const client = context.logstash!.esClient;
-
-        await client.callAsCurrentUser('delete', {
-          index: INDEX_NAMES.PIPELINES,
-          id: request.params.id,
-          refresh: 'wait_for',
-        });
+        const pipelineFetcher = context.logstash!.pipelineFetcher;
+        await pipelineFetcher.delete(request.params.id);
+        //todo remove
+        // const client = context.logstash!.esClient;
+        // await client.callAsCurrentUser('delete', {
+        //   index: INDEX_NAMES.PIPELINES,
+        //   id: request.params.id,
+        //   refresh: 'wait_for',
+        // });
 
         return response.noContent();
       })

@@ -12,11 +12,15 @@ export class PipelineListItem {
   public readonly description: string;
   public readonly last_modified: string;
   public readonly username: string;
+  public readonly pipeline?: string;
+  public readonly setting?: Record<string, any>;
   constructor(options: PipelineListItemOptions) {
     this.id = options.id;
     this.description = options.description;
     this.last_modified = options.last_modified;
     this.username = options.username;
+    this.pipeline = options.pipline;
+    this.setting = options.setting;
   }
 
   public get downstreamJSON() {
@@ -25,6 +29,8 @@ export class PipelineListItem {
       description: this.description,
       last_modified: this.last_modified,
       username: this.username,
+      pipeline: this.pipeline,
+      setting: this.setting,
     };
 
     return json;
@@ -40,6 +46,8 @@ export class PipelineListItem {
       description: get(pipeline, '_source.description') as string,
       last_modified: get(pipeline, '_source.last_modified') as string,
       username: get(pipeline, '_source.username') as string,
+      pipeline: get(pipeline, '_source.pipeline') as string,
+      setting: (get(pipeline, '_source.pipeline_settings') as Record<string, any>) || {},
     };
 
     return new PipelineListItem(opts);

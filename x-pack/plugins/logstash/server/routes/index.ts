@@ -3,7 +3,7 @@
  * or more contributor license agreements. Licensed under the Elastic License;
  * you may not use this file except in compliance with the Elastic License.
  */
-import { IRouter } from 'src/core/server';
+import {IRouter, Logger} from 'src/core/server';
 import { SecurityPluginSetup } from '../../../security/server';
 import { registerClusterLoadRoute } from './cluster';
 import {
@@ -14,11 +14,11 @@ import {
 import { registerPipelinesListRoute, registerPipelinesDeleteRoute } from './pipelines';
 import { registerUpgradeRoute } from './upgrade';
 
-export function registerRoutes(router: IRouter, security?: SecurityPluginSetup) {
+export function registerRoutes(router: IRouter, security?: SecurityPluginSetup, logger: Logger) {
   registerClusterLoadRoute(router);
 
   registerPipelineDeleteRoute(router);
-  registerPipelineLoadRoute(router);
+  registerPipelineLoadRoute(router, logger);
   registerPipelineSaveRoute(router, security);
 
   registerPipelinesListRoute(router);
